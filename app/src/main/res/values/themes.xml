@@ -6,4 +6,8 @@
   </style>
 
   <style name="Theme.Laco" parent="Base.Theme.Laco" />
+
+  <style name="FullScreenTheme" parent="Theme.Laco">
+    <item name="android:windowFullscreen">true</item>
+  </style>
 </resources>

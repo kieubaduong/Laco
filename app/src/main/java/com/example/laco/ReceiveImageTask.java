@@ -53,7 +53,7 @@ public class ReceiveImageTask implements Callable<Void> {
       Log.i("ReceiveImageTask", "Connected to server at " + serverIp + ":" + serverPort);
 
       String line;
-      while (true) { // Keep reading until an exception is thrown
+      while (true) {
         try {
           line = reader.readLine();
         } catch (IOException e) {
@@ -61,11 +61,10 @@ public class ReceiveImageTask implements Callable<Void> {
           continue;
         }
         if (line == null) {
-          // Connection was lost, try to reconnect
           continue;
         }
         if (line.equals("END")) {
-          continue; // Skip "END" messages
+          continue;
         }
         byte[] receivedBytes = Base64.getDecoder().decode(line);
         Log.i("ReceiveImageTask", "Received " + receivedBytes.length + " bytes from server");
