@@ -4,7 +4,6 @@ import android.content.Context;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import java.io.OutputStream;
@@ -14,77 +13,82 @@ import java.nio.charset.StandardCharsets;
 
 public class CustomImageView extends androidx.appcompat.widget.AppCompatImageView {
 
-  private GestureDetector gestureDetector;
   private float startX;
   private float startY;
   private boolean isDragEvent = false;
-  private boolean isLongPress = false;
-  private Handler handler = new Handler();
+  private final Handler handler = new Handler();
+  private static final int DOUBLE_CLICK_TIMEOUT = ViewConfiguration.getDoubleTapTimeout();
+  private long lastClickTime = 0;
+  private int clickCount = 0;
 
   public CustomImageView(Context context) {
     super(context);
-    init();
   }
 
   public CustomImageView(Context context, AttributeSet attrs) {
     super(context, attrs);
-    init();
   }
 
-  private void init() {
-    gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
-      @Override
-      public boolean onSingleTapConfirmed(MotionEvent e) {
-        if (!isLongPress) {
-          return handleTap(e, "http://192.168.1.6:8080/singleClick", "Send click");
-        }
-        isLongPress = false;
-        return false;
-      }
 
-      @Override
-      public boolean onDoubleTap(MotionEvent e) {
-        if (!isLongPress) {
-          return handleTap(e, "http://192.168.1.6:8080/doubleClick", "Send double click");
+  @Override
+  public boolean onTouchEvent(MotionEvent event) {
+    switch (event.getAction()) {
+      case MotionEvent.ACTION_DOWN:
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastClickTime <= DOUBLE_CLICK_TIMEOUT) {
+          clickCount++;
+        } else {
+          clickCount = 1;
         }
-        isLongPress = false;
-        return false;
-      }
-
-      @Override
-      public void onLongPress(MotionEvent e) {
-        startX = e.getX();
-        startY = e.getY();
+        lastClickTime = currentTime;
+        startX = event.getX();
+        startY = event.getY();
         isDragEvent = true;
+        break;
 
-        // Delay the long press action
-        handler.postDelayed(() -> {
-          if (isDragEvent) {
-            handleTap(e, "http://192.168.1.6:8080/rightClick", "Send right click");
-            isLongPress = true;
+      case MotionEvent.ACTION_UP:
+        if (isDragEvent) {
+          float endX = event.getX();
+          float endY = event.getY();
+
+          if (isADrag(startX, endX, startY, endY)) {
+            handleDrag(startX, startY, endX, endY, "http://192.168.1.6:8080/drag", "Send drag");
+          } else if (System.currentTimeMillis() - lastClickTime
+              > ViewConfiguration.getLongPressTimeout()) {
+            handleTap(event, "http://192.168.1.6:8080/longPress", "Send long press");
+          } else if (clickCount == 2) {
+            handleTap(event, "http://192.168.1.6:8080/doubleClick", "Send double click");
+            clickCount = 0;
+          } else {
+            handleTap(event, "http://192.168.1.6:8080/singleClick", "Send single click");
           }
-        }, ViewConfiguration.getLongPressTimeout());
-      }
-    });
 
-    setOnTouchListener((v, event) -> {
-      gestureDetector.onTouchEvent(event);
-      if (event.getAction() == MotionEvent.ACTION_UP && isDragEvent) {
-        float endX = event.getX();
-        float endY = event.getY();
-
-        if (isADrag(startX, endX, startY, endY)) {
-          handleDrag(startX, startY, endX, endY, "http://192.168.1.6:8080/drag", "Send drag");
+          isDragEvent = false;
         }
+        break;
 
+      case MotionEvent.ACTION_MOVE:
+        if (isDragEvent && isADrag(startX, event.getX(), startY, event.getY())) {
+          handler.removeCallbacksAndMessages(null);
+        }
+        break;
+
+      case MotionEvent.ACTION_CANCEL:
         isDragEvent = false;
-      }
-      v.performClick();
-      return true;
-    });
+        handler.removeCallbacksAndMessages(null);
+        break;
+    }
+
+    performClick();
+    return true;
   }
 
-  private boolean handleTap(MotionEvent e, String url, String logTag) {
+  @Override
+  public boolean performClick() {
+    return super.performClick();
+  }
+
+  private void handleTap(MotionEvent e, String url, String logTag) {
     float x = e.getX();
     float y = e.getY();
 
@@ -129,17 +133,18 @@ public class CustomImageView extends androidx.appcompat.widget.AppCompatImageVie
       }
     }).start();
 
-    return true;
   }
 
-  private void handleDrag(float startX, float startY, float endX, float endY, String url, String logTag) {
+  private void handleDrag(float startX, float startY, float endX, float endY, String url,
+      String logTag) {
     float scaleXStart = startX / getWidth();
     float scaleYStart = startY / getHeight();
     float scaleXEnd = endX / getWidth();
     float scaleYEnd = endY / getHeight();
 
     Log.d(logTag, "Drag from " + startX + "," + startY + " to " + endX + "," + endY);
-    Log.d(logTag, "Scaled from " + scaleXStart + "," + scaleYStart + " to " + scaleXEnd + "," + scaleYEnd);
+    Log.d(logTag,
+        "Scaled from " + scaleXStart + "," + scaleYStart + " to " + scaleXEnd + "," + scaleYEnd);
 
     new Thread(() -> {
       try {
@@ -150,7 +155,9 @@ public class CustomImageView extends androidx.appcompat.widget.AppCompatImageVie
         connection.setDoOutput(true);
         connection.setRequestProperty("Content-Type", "application/json; utf-8");
 
-        String jsonInputString = "{\"startX\": " + scaleXStart + ", \"startY\": " + scaleYStart + ", \"endX\": " + scaleXEnd + ", \"endY\": " + scaleYEnd + "}";
+        String jsonInputString =
+            "{\"startX\": " + scaleXStart + ", \"startY\": " + scaleYStart + ", \"endX\": "
+                + scaleXEnd + ", \"endY\": " + scaleYEnd + "}";
         Log.d(logTag, "Sending " + jsonInputString);
 
         try (OutputStream os = connection.getOutputStream()) {
