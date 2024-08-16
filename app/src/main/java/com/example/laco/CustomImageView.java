@@ -14,7 +14,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 public class CustomImageView extends androidx.appcompat.widget.AppCompatImageView {
-    private static final String BASE_URL = "http://192.168.92.58:8080/";
+    private static final String BASE_URL = "http://YOUR_MACHINE_IP:8080/";
 
     private float startX;
     private float startY;
@@ -63,7 +63,6 @@ public class CustomImageView extends androidx.appcompat.widget.AppCompatImageVie
                     float endY = event.getY();
 
                     if (isADrag(startX, endX, startY, endY)) {
-//            handleDrag(startX, startY, endX, endY, BASE_URL + "drag", "Send drag");
                     } else if (System.currentTimeMillis() - lastClickTime
                             > ViewConfiguration.getLongPressTimeout()) {
                         handleTap(event, BASE_URL + "rightClick", "Send long press");

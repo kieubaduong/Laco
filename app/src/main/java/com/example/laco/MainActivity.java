@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
 
     imageView = findViewById(R.id.imageView);
 
-    new ReceiveImageTask("192.168.92.58", 5657, this).execute();
+    new ReceiveImageTask("YOUR_MACHINE_IP", 5657, this).execute();
 
     imageView.post(() -> Log.d("ImageView Size",
         "Width: " + imageView.getWidth() + ", Height: " + imageView.getHeight()));
