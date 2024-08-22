@@ -1,8 +1,9 @@
 # Laptop Controller Application
 
-[[Watch the demo video]](https://drive.google.com/file/d/10XGhj6HbYDOXbcUIashV5NcaeDDFmzCd/view?usp=sharing)
+https://github.com/user-attachments/assets/7461ea61-afc3-4d07-a150-f4c30dc56338
 
 ## Description
+
 Laco is an Android mobile app that allows you to control your laptop remotely. It collaborates with the LacoService repository, which runs as a service on your Windows laptop.
 
 ## How to Use
